@@ -1,0 +1,1249 @@
+// =====================================================================
+// Англи хэлний сургалтын төвийн ERP — Prisma schema
+// Database : english_center_erp (XAMPP MariaDB 10.4, utf8mb4)
+// Модулиуд : M7, M1, M4, M2, M3, M5, M6 (SUERP3.docx)
+// Мөнгөн дүн: DECIMAL(12,2). Цаг (HH:MM) : VARCHAR(5)
+// =====================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------
+// ENUM
+// ---------------------------------------------------------------------
+
+enum RoleCode {
+  SUPER_ADMIN
+  BRANCH_ADMIN
+  FINANCE
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+enum LeadSource {
+  WALK_IN
+  PHONE
+  WEB_FORM
+  FACEBOOK
+  REFERRAL
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  PLACEMENT_TEST
+  CONVERTED
+  LOST
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  GRADUATED
+}
+
+enum Relationship {
+  MOTHER
+  FATHER
+  GUARDIAN
+  OTHER
+}
+
+enum EnrollmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  TRANSFERRED
+}
+
+enum ContractStatus {
+  DRAFT
+  SIGNED
+  CANCELLED
+}
+
+enum ClassStatus {
+  PLANNED
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum SessionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MaterialType {
+  PDF
+  AUDIO
+  LINK
+  OTHER
+}
+
+enum AnswerType {
+  FILE
+  TEXT
+  AUDIO
+}
+
+enum SubmissionStatus {
+  SUBMITTED
+  LATE
+  GRADED
+  RETURNED
+}
+
+enum ExamType {
+  QUIZ
+  MIDTERM
+  FINAL
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  WRITING
+  SPEAKING
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  SUBMITTED
+  GRADED
+  EXPIRED
+}
+
+enum Skill {
+  LISTENING
+  READING
+  WRITING
+  SPEAKING
+}
+
+enum CertificateStatus {
+  ISSUED
+  REVOKED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  EXCUSED
+}
+
+enum AttendanceMethod {
+  QR
+  MANUAL
+}
+
+enum InvoiceStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  QPAY
+}
+
+enum PaymentStatus {
+  COMPLETED
+  VOIDED
+}
+
+enum ReminderChannel {
+  IN_APP
+}
+
+enum PayoutStatus {
+  DRAFT
+  APPROVED
+  PAID
+}
+
+enum ImportStatus {
+  PREVIEW
+  CONFIRMED
+  CANCELLED
+}
+
+enum ImportRowStatus {
+  VALID
+  DUPLICATE
+  ERROR
+  IMPORTED
+}
+
+enum RequestType {
+  LEAVE
+  INQUIRY
+}
+
+enum RequestStatus {
+  PENDING
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  RESOLVED
+}
+
+enum TeacherStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum HoursStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// =====================================================================
+// M7 — Удирдлага ба салбар
+// =====================================================================
+
+model Branch {
+  id                   Int      @id @default(autoincrement())
+  code                 String   @unique @db.VarChar(20)
+  name                 String   @db.VarChar(150)
+  address              String?  @db.VarChar(255)
+  phone                String?  @db.VarChar(30)
+  lateThresholdMinutes Int      @default(10) @map("late_threshold_minutes")
+  qrTtlSeconds         Int      @default(60) @map("qr_ttl_seconds")
+  stampPath            String?  @map("stamp_path") @db.VarChar(255)
+  signaturePath        String?  @map("signature_path") @db.VarChar(255)
+  isActive             Boolean  @default(true) @map("is_active")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  users          User[]
+  auditLogs      AuditLog[]
+  leads          Lead[]
+  students       Student[]
+  enrollments    Enrollment[]
+  classrooms     Classroom[]
+  classes        Class[]
+  teachers       Teacher[]
+  invoices       Invoice[]
+  payments       Payment[]
+  expenses       Expense[]
+  teacherPayouts TeacherPayout[]
+  paymentImports PaymentImport[]
+
+  @@map("branches")
+}
+
+model Role {
+  id   Int      @id @default(autoincrement())
+  code RoleCode @unique
+  name String   @db.VarChar(100)
+
+  users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  branchId     Int?      @map("branch_id")
+  roleId       Int       @map("role_id")
+  username     String    @unique @db.VarChar(50)
+  email        String?   @unique @db.VarChar(150)
+  displayName  String    @map("display_name") @db.VarChar(150)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  branch        Branch?        @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  role          Role           @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  auditLogs     AuditLog[]     @relation("AuditActor")
+  auditApproved AuditLog[]     @relation("AuditApprover")
+  notifications Notification[]
+  student       Student?
+  parent        Parent?
+  teacher       Teacher?
+
+  leadsAssigned        Lead[]                 @relation("LeadAssignee")
+  parentLinksVerified  ParentStudent[]        @relation("ParentLinkVerifier")
+  enrollmentsConfirmed Enrollment[]           @relation("EnrollmentConfirmer")
+  documentsUploaded    StudentDocument[]
+  materialsUploaded    Material[]
+  qrSessionsCreated    QrSession[]
+  attendanceConfirmed  Attendance[]           @relation("AttendanceConfirmer")
+  attendanceCorrected  AttendanceCorrection[]
+  invoicesIssued       Invoice[]
+  paymentsReceived     Payment[]
+  refundsApproved      Refund[]
+  remindersSent        PaymentReminder[]
+  expensesCreated      Expense[]
+  payoutsCreated       TeacherPayout[]
+  paymentImports       PaymentImport[]
+  requestsHandled      ParentRequest[]
+  hoursApproved        TeachingHour[]
+  ratesCreated         TeacherRate[]
+  certificatesIssued   Certificate[]
+  submissionsGraded    Submission[]
+  answersGraded        AttemptAnswer[]
+
+  @@map("users")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?     @map("user_id")
+  branchId   Int?     @map("branch_id")
+  action     String   @db.VarChar(50)
+  entityType String   @map("entity_type") @db.VarChar(50)
+  entityId   Int?     @map("entity_id")
+  oldValues  String?  @map("old_values") @db.LongText
+  newValues  String?  @map("new_values") @db.LongText
+  reason     String?  @db.VarChar(500)
+  approvedBy Int?     @map("approved_by")
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User?   @relation("AuditActor", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  approver User?   @relation("AuditApprover", fields: [approvedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  branch   Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  title     String   @db.VarChar(200)
+  body      String?  @db.Text
+  link      String?  @db.VarChar(255)
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// =====================================================================
+// M1 — Сурагчийн удирдлага
+// =====================================================================
+
+model Lead {
+  id                 Int        @id @default(autoincrement())
+  branchId           Int        @map("branch_id")
+  contactName        String     @map("contact_name") @db.VarChar(150)
+  contactPhone       String     @map("contact_phone") @db.VarChar(30)
+  studentName        String     @map("student_name") @db.VarChar(150)
+  studentBirthDate   DateTime?  @map("student_birth_date") @db.Date
+  interestedCourseId Int?       @map("interested_course_id")
+  placementLevelId   Int?       @map("placement_level_id")
+  source             LeadSource @default(WALK_IN)
+  status             LeadStatus @default(NEW)
+  note               String?    @db.Text
+  assignedTo         Int?       @map("assigned_to")
+  convertedStudentId Int?       @unique @map("converted_student_id")
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  branch           Branch        @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  interestedCourse Course?       @relation(fields: [interestedCourseId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  placementLevel   EnglishLevel? @relation(fields: [placementLevelId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  assignee         User?         @relation("LeadAssignee", fields: [assignedTo], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  convertedStudent Student?      @relation(fields: [convertedStudentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  enrollment       Enrollment?
+
+  @@index([branchId, status])
+  @@index([contactPhone])
+  @@map("leads")
+}
+
+model Student {
+  id             Int           @id @default(autoincrement())
+  branchId       Int           @map("branch_id")
+  userId         Int?          @unique @map("user_id")
+  studentCode    String        @unique @map("student_code") @db.VarChar(20)
+  lastName       String        @map("last_name") @db.VarChar(100)
+  firstName      String        @map("first_name") @db.VarChar(100)
+  registerNo     String?       @unique @map("register_no") @db.VarChar(20)
+  birthDate      DateTime?     @map("birth_date") @db.Date
+  gender         Gender?
+  phone          String?       @db.VarChar(30)
+  address        String?       @db.VarChar(255)
+  currentLevelId Int?          @map("current_level_id")
+  status         StudentStatus @default(ACTIVE)
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  branch         Branch            @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  user           User?             @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  currentLevel   EnglishLevel?     @relation(fields: [currentLevelId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  lead           Lead?
+  parentLinks    ParentStudent[]
+  enrollments    Enrollment[]
+  documents      StudentDocument[]
+  submissions    Submission[]
+  examAttempts   ExamAttempt[]
+  examResults    ExamResult[]
+  attendance     Attendance[]
+  parentRequests ParentRequest[]
+
+  @@index([branchId, status])
+  @@index([lastName, firstName])
+  @@map("students")
+}
+
+model Parent {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  lastName  String   @map("last_name") @db.VarChar(100)
+  firstName String   @map("first_name") @db.VarChar(100)
+  phone     String   @unique @db.VarChar(30)
+  email     String?  @db.VarChar(150)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  children  ParentStudent[]
+  contracts Contract[]
+  requests  ParentRequest[]
+
+  @@map("parents")
+}
+
+model ParentStudent {
+  id           Int          @id @default(autoincrement())
+  parentId     Int          @map("parent_id")
+  studentId    Int          @map("student_id")
+  relationship Relationship @default(GUARDIAN)
+  verifiedBy   Int?         @map("verified_by")
+  verifiedAt   DateTime?    @map("verified_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  parent   Parent  @relation(fields: [parentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  student  Student @relation(fields: [studentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  verifier User?   @relation("ParentLinkVerifier", fields: [verifiedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([parentId, studentId])
+  @@map("parent_students")
+}
+
+model TrainingPackage {
+  id            Int      @id @default(autoincrement())
+  courseId      Int      @map("course_id")
+  name          String   @db.VarChar(150)
+  sessionsCount Int      @map("sessions_count")
+  durationWeeks Int      @map("duration_weeks")
+  price         Decimal  @db.Decimal(12, 2)
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  enrollments Enrollment[]
+
+  @@map("training_packages")
+}
+
+model Enrollment {
+  id                Int              @id @default(autoincrement())
+  branchId          Int              @map("branch_id")
+  studentId         Int              @map("student_id")
+  classId           Int              @map("class_id")
+  packageId         Int              @map("package_id")
+  leadId            Int?             @unique @map("lead_id")
+  transferredFromId Int?             @unique @map("transferred_from_id")
+  listPrice         Decimal          @map("list_price") @db.Decimal(12, 2)
+  discountAmount    Decimal          @default(0) @map("discount_amount") @db.Decimal(12, 2)
+  finalAmount       Decimal          @map("final_amount") @db.Decimal(12, 2)
+  status            EnrollmentStatus @default(PENDING)
+  confirmedAt       DateTime?        @map("confirmed_at")
+  confirmedBy       Int?             @map("confirmed_by")
+  cancelReason      String?          @map("cancel_reason") @db.VarChar(500)
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  branch              Branch               @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  student             Student              @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  class               Class                @relation(fields: [classId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  package             TrainingPackage      @relation(fields: [packageId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  lead                Lead?                @relation(fields: [leadId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  transferredFrom     Enrollment?          @relation("EnrollmentTransfer", fields: [transferredFromId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  transferredTo       Enrollment?          @relation("EnrollmentTransfer")
+  confirmer           User?                @relation("EnrollmentConfirmer", fields: [confirmedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  contract            Contract?
+  invoice             Invoice?
+  documents           StudentDocument[]
+  progressAssessments ProgressAssessment[]
+  certificate         Certificate?
+
+  @@unique([studentId, classId])
+  @@index([branchId, status])
+  @@map("enrollments")
+}
+
+model Contract {
+  id             Int            @id @default(autoincrement())
+  enrollmentId   Int            @unique @map("enrollment_id")
+  contractNo     String         @unique @map("contract_no") @db.VarChar(30)
+  signerParentId Int?           @map("signer_parent_id")
+  status         ContractStatus @default(DRAFT)
+  filePath       String?        @map("file_path") @db.VarChar(255)
+  signedAt       DateTime?      @map("signed_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  signerParent Parent?    @relation(fields: [signerParentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("contracts")
+}
+
+model StudentDocument {
+  id           Int      @id @default(autoincrement())
+  studentId    Int      @map("student_id")
+  enrollmentId Int?     @map("enrollment_id")
+  docType      String   @map("doc_type") @db.VarChar(50)
+  originalName String   @map("original_name") @db.VarChar(255)
+  filePath     String   @map("file_path") @db.VarChar(255)
+  mimeType     String   @map("mime_type") @db.VarChar(100)
+  uploadedBy   Int      @map("uploaded_by")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  student    Student     @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  enrollment Enrollment? @relation(fields: [enrollmentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  uploader   User        @relation(fields: [uploadedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("student_documents")
+}
+
+// =====================================================================
+// M4 — Сургалт ба үнэлгээ (хөтөлбөр, анги, хуваарь)
+// =====================================================================
+
+model EnglishLevel {
+  id        Int    @id @default(autoincrement())
+  code      String @unique @db.VarChar(10)
+  name      String @db.VarChar(100)
+  sortOrder Int    @default(0) @map("sort_order")
+
+  courses  Course[]
+  students Student[]
+  leads    Lead[]
+
+  @@map("english_levels")
+}
+
+model Program {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(150)
+  targetGroup String?  @map("target_group") @db.VarChar(100)
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  courses Course[]
+
+  @@map("programs")
+}
+
+model Course {
+  id                   Int      @id @default(autoincrement())
+  programId            Int      @map("program_id")
+  levelId              Int      @map("level_id")
+  code                 String   @unique @db.VarChar(20)
+  name                 String   @db.VarChar(150)
+  totalSessions        Int      @map("total_sessions")
+  sessionMinutes       Int      @default(90) @map("session_minutes")
+  minAttendancePercent Decimal  @default(80) @map("min_attendance_percent") @db.Decimal(5, 2)
+  minFinalScore        Decimal  @default(60) @map("min_final_score") @db.Decimal(5, 2)
+  requireFullPayment   Boolean  @default(true) @map("require_full_payment")
+  isActive             Boolean  @default(true) @map("is_active")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  program        Program           @relation(fields: [programId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  level          EnglishLevel      @relation(fields: [levelId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  packages       TrainingPackage[]
+  classes        Class[]
+  materials      Material[]
+  teacherCourses TeacherCourse[]
+  leads          Lead[]
+
+  @@map("courses")
+}
+
+model Classroom {
+  id        Int      @id @default(autoincrement())
+  branchId  Int      @map("branch_id")
+  name      String   @db.VarChar(50)
+  capacity  Int
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  branch    Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  classes   Class[]
+  schedules Schedule[]
+  sessions  ClassSession[]
+
+  @@unique([branchId, name])
+  @@map("classrooms")
+}
+
+model Class {
+  id          Int         @id @default(autoincrement())
+  branchId    Int         @map("branch_id")
+  courseId    Int         @map("course_id")
+  teacherId   Int         @map("teacher_id")
+  classroomId Int?        @map("classroom_id")
+  code        String      @unique @db.VarChar(30)
+  capacity    Int
+  startDate   DateTime    @map("start_date") @db.Date
+  endDate     DateTime    @map("end_date") @db.Date
+  status      ClassStatus @default(PLANNED)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  branch      Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  course      Course         @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  teacher     Teacher        @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  classroom   Classroom?     @relation(fields: [classroomId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  enrollments Enrollment[]
+  schedules   Schedule[]
+  sessions    ClassSession[]
+  materials   Material[]
+  assignments Assignment[]
+  exams       Exam[]
+
+  @@index([branchId, status])
+  @@map("classes")
+}
+
+model Schedule {
+  id          Int      @id @default(autoincrement())
+  classId     Int      @map("class_id")
+  teacherId   Int      @map("teacher_id")
+  classroomId Int      @map("classroom_id")
+  dayOfWeek   Int      @map("day_of_week")
+  startTime   String   @map("start_time") @db.VarChar(5)
+  endTime     String   @map("end_time") @db.VarChar(5)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  class     Class          @relation(fields: [classId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  teacher   Teacher        @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  classroom Classroom      @relation(fields: [classroomId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  sessions  ClassSession[]
+
+  @@index([teacherId, dayOfWeek])
+  @@index([classroomId, dayOfWeek])
+  @@map("schedules")
+}
+
+model ClassSession {
+  id          Int           @id @default(autoincrement())
+  classId     Int           @map("class_id")
+  scheduleId  Int?          @map("schedule_id")
+  teacherId   Int           @map("teacher_id")
+  classroomId Int           @map("classroom_id")
+  startsAt    DateTime      @map("starts_at")
+  endsAt      DateTime      @map("ends_at")
+  status      SessionStatus @default(SCHEDULED)
+  topic       String?       @db.VarChar(255)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  class        Class         @relation(fields: [classId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  schedule     Schedule?     @relation(fields: [scheduleId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  teacher      Teacher       @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  classroom    Classroom     @relation(fields: [classroomId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  qrSessions   QrSession[]
+  attendance   Attendance[]
+  teachingHour TeachingHour?
+
+  @@index([classId, startsAt])
+  @@index([teacherId, startsAt])
+  @@index([classroomId, startsAt])
+  @@map("class_sessions")
+}
+
+model Material {
+  id         Int          @id @default(autoincrement())
+  courseId   Int          @map("course_id")
+  classId    Int?         @map("class_id")
+  title      String       @db.VarChar(200)
+  type       MaterialType
+  filePath   String?      @map("file_path") @db.VarChar(255)
+  url        String?      @db.VarChar(500)
+  uploadedBy Int          @map("uploaded_by")
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  class    Class? @relation(fields: [classId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  uploader User   @relation(fields: [uploadedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("materials")
+}
+
+// =====================================================================
+// M4 — Сургалт ба үнэлгээ (даалгавар, шалгалт, гэрчилгээ)
+// =====================================================================
+
+model Assignment {
+  id             Int        @id @default(autoincrement())
+  classId        Int        @map("class_id")
+  createdBy      Int        @map("created_by")
+  title          String     @db.VarChar(200)
+  description    String?    @db.Text
+  answerType     AnswerType @map("answer_type")
+  attachmentPath String?    @map("attachment_path") @db.VarChar(255)
+  dueAt          DateTime   @map("due_at")
+  maxScore       Decimal    @default(100) @map("max_score") @db.Decimal(6, 2)
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
+
+  class       Class        @relation(fields: [classId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  creator     Teacher      @relation(fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  submissions Submission[]
+
+  @@map("assignments")
+}
+
+model Submission {
+  id           Int              @id @default(autoincrement())
+  assignmentId Int              @map("assignment_id")
+  studentId    Int              @map("student_id")
+  textAnswer   String?          @map("text_answer") @db.Text
+  filePath     String?          @map("file_path") @db.VarChar(255)
+  submittedAt  DateTime         @default(now()) @map("submitted_at")
+  score        Decimal?         @db.Decimal(6, 2)
+  feedback     String?          @db.Text
+  gradedBy     Int?             @map("graded_by")
+  gradedAt     DateTime?        @map("graded_at")
+  status       SubmissionStatus @default(SUBMITTED)
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  student    Student    @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  grader     User?      @relation(fields: [gradedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([assignmentId, studentId])
+  @@map("submissions")
+}
+
+model Exam {
+  id                  Int      @id @default(autoincrement())
+  classId             Int      @map("class_id")
+  title               String   @db.VarChar(200)
+  examType            ExamType @map("exam_type")
+  opensAt             DateTime @map("opens_at")
+  closesAt            DateTime @map("closes_at")
+  durationMinutes     Int      @map("duration_minutes")
+  maxAttempts         Int      @default(1) @map("max_attempts")
+  maxScore            Decimal  @default(100) @map("max_score") @db.Decimal(6, 2)
+  countsForGraduation Boolean  @default(false) @map("counts_for_graduation")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  class     Class         @relation(fields: [classId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  questions Question[]
+  attempts  ExamAttempt[]
+  results   ExamResult[]
+
+  @@map("exams")
+}
+
+model Question {
+  id           Int          @id @default(autoincrement())
+  examId       Int          @map("exam_id")
+  questionType QuestionType @map("question_type")
+  prompt       String       @db.Text
+  audioPath    String?      @map("audio_path") @db.VarChar(255)
+  points       Decimal      @db.Decimal(6, 2)
+  sortOrder    Int          @default(0) @map("sort_order")
+
+  exam    Exam             @relation(fields: [examId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  options QuestionOption[]
+  answers AttemptAnswer[]
+
+  @@map("questions")
+}
+
+model QuestionOption {
+  id         Int     @id @default(autoincrement())
+  questionId Int     @map("question_id")
+  optionText String  @map("option_text") @db.VarChar(500)
+  isCorrect  Boolean @default(false) @map("is_correct")
+  sortOrder  Int     @default(0) @map("sort_order")
+
+  question Question        @relation(fields: [questionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  answers  AttemptAnswer[]
+
+  @@map("question_options")
+}
+
+model ExamAttempt {
+  id          Int           @id @default(autoincrement())
+  examId      Int           @map("exam_id")
+  studentId   Int           @map("student_id")
+  attemptNo   Int           @map("attempt_no")
+  startedAt   DateTime      @default(now()) @map("started_at")
+  deadlineAt  DateTime      @map("deadline_at")
+  submittedAt DateTime?     @map("submitted_at")
+  totalScore  Decimal?      @map("total_score") @db.Decimal(6, 2)
+  status      AttemptStatus @default(IN_PROGRESS)
+
+  exam       Exam            @relation(fields: [examId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  student    Student         @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  answers    AttemptAnswer[]
+  bestResult ExamResult?
+
+  @@unique([examId, studentId, attemptNo])
+  @@map("exam_attempts")
+}
+
+model AttemptAnswer {
+  id               Int      @id @default(autoincrement())
+  attemptId        Int      @map("attempt_id")
+  questionId       Int      @map("question_id")
+  selectedOptionId Int?     @map("selected_option_id")
+  textAnswer       String?  @map("text_answer") @db.Text
+  audioPath        String?  @map("audio_path") @db.VarChar(255)
+  score            Decimal? @db.Decimal(6, 2)
+  feedback         String?  @db.Text
+  gradedBy         Int?     @map("graded_by")
+
+  attempt        ExamAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  question       Question        @relation(fields: [questionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  selectedOption QuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  grader         User?           @relation(fields: [gradedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@map("attempt_answers")
+}
+
+model ExamResult {
+  id            Int       @id @default(autoincrement())
+  examId        Int       @map("exam_id")
+  studentId     Int       @map("student_id")
+  bestAttemptId Int?      @unique @map("best_attempt_id")
+  finalScore    Decimal   @map("final_score") @db.Decimal(6, 2)
+  publishedAt   DateTime? @map("published_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  exam        Exam         @relation(fields: [examId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  student     Student      @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  bestAttempt ExamAttempt? @relation(fields: [bestAttemptId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([examId, studentId])
+  @@map("exam_results")
+}
+
+model ProgressAssessment {
+  id             Int      @id @default(autoincrement())
+  enrollmentId   Int      @map("enrollment_id")
+  skill          Skill
+  score          Decimal  @db.Decimal(5, 2)
+  teacherComment String?  @map("teacher_comment") @db.Text
+  assessedBy     Int      @map("assessed_by")
+  assessedOn     DateTime @map("assessed_on") @db.Date
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  assessor   Teacher    @relation(fields: [assessedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([enrollmentId, skill])
+  @@map("progress_assessments")
+}
+
+model Certificate {
+  id                Int               @id @default(autoincrement())
+  enrollmentId      Int               @unique @map("enrollment_id")
+  certificateNo     String            @unique @map("certificate_no") @db.VarChar(30)
+  verificationCode  String            @unique @map("verification_code") @db.VarChar(32)
+  attendancePercent Decimal           @map("attendance_percent") @db.Decimal(5, 2)
+  finalScore        Decimal           @map("final_score") @db.Decimal(6, 2)
+  filePath          String?           @map("file_path") @db.VarChar(255)
+  issuedBy          Int               @map("issued_by")
+  issuedAt          DateTime          @default(now()) @map("issued_at")
+  status            CertificateStatus @default(ISSUED)
+  revokeReason      String?           @map("revoke_reason") @db.VarChar(500)
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  issuer     User       @relation(fields: [issuedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("certificates")
+}
+
+// =====================================================================
+// M2 — QR ирцийн систем
+// =====================================================================
+
+model QrSession {
+  id             Int       @id @default(autoincrement())
+  classSessionId Int       @map("class_session_id")
+  tokenHash      String    @unique @map("token_hash") @db.Char(64)
+  createdBy      Int       @map("created_by")
+  issuedAt       DateTime  @default(now()) @map("issued_at")
+  expiresAt      DateTime  @map("expires_at")
+  revokedAt      DateTime? @map("revoked_at")
+
+  classSession ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  creator      User         @relation(fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  attendance   Attendance[]
+
+  @@index([classSessionId])
+  @@map("qr_sessions")
+}
+
+model Attendance {
+  id             Int              @id @default(autoincrement())
+  classSessionId Int              @map("class_session_id")
+  studentId      Int              @map("student_id")
+  status         AttendanceStatus
+  method         AttendanceMethod
+  qrSessionId    Int?             @map("qr_session_id")
+  checkedInAt    DateTime?        @map("checked_in_at")
+  lateMinutes    Int              @default(0) @map("late_minutes")
+  confirmedBy    Int?             @map("confirmed_by")
+  confirmedAt    DateTime?        @map("confirmed_at")
+  clientIp       String?          @map("client_ip") @db.VarChar(45)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  classSession ClassSession           @relation(fields: [classSessionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  student      Student                @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  qrSession    QrSession?             @relation(fields: [qrSessionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  confirmer    User?                  @relation("AttendanceConfirmer", fields: [confirmedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  corrections  AttendanceCorrection[]
+
+  @@unique([classSessionId, studentId])
+  @@map("attendance")
+}
+
+model AttendanceCorrection {
+  id           Int              @id @default(autoincrement())
+  attendanceId Int              @map("attendance_id")
+  oldStatus    AttendanceStatus @map("old_status")
+  newStatus    AttendanceStatus @map("new_status")
+  reason       String           @db.VarChar(500)
+  correctedBy  Int              @map("corrected_by")
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  attendance Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  corrector  User       @relation(fields: [correctedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("attendance_corrections")
+}
+
+// =====================================================================
+// M3 — Төлбөр ба санхүү
+// =====================================================================
+
+model Invoice {
+  id           Int           @id @default(autoincrement())
+  branchId     Int           @map("branch_id")
+  enrollmentId Int           @unique @map("enrollment_id")
+  invoiceNo    String        @unique @map("invoice_no") @db.VarChar(30)
+  totalAmount  Decimal       @map("total_amount") @db.Decimal(12, 2)
+  dueDate      DateTime      @map("due_date") @db.Date
+  status       InvoiceStatus @default(UNPAID)
+  issuedAt     DateTime      @default(now()) @map("issued_at")
+  issuedBy     Int           @map("issued_by")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  branch     Branch             @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  enrollment Enrollment         @relation(fields: [enrollmentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  issuer     User               @relation(fields: [issuedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  payments   Payment[]
+  refunds    Refund[]
+  reminders  PaymentReminder[]
+  importRows PaymentImportRow[]
+
+  @@index([branchId, status])
+  @@index([dueDate])
+  @@map("invoices")
+}
+
+model Payment {
+  id             Int           @id @default(autoincrement())
+  invoiceId      Int           @map("invoice_id")
+  branchId       Int           @map("branch_id")
+  amount         Decimal       @db.Decimal(12, 2)
+  method         PaymentMethod
+  idempotencyKey String        @unique @map("idempotency_key") @db.VarChar(100)
+  referenceNo    String?       @map("reference_no") @db.VarChar(100)
+  paidAt         DateTime      @default(now()) @map("paid_at")
+  receivedBy     Int           @map("received_by")
+  status         PaymentStatus @default(COMPLETED)
+  voidReason     String?       @map("void_reason") @db.VarChar(500)
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  invoice  Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  branch   Branch   @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  receiver User     @relation(fields: [receivedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  refunds  Refund[]
+
+  @@index([branchId, paidAt])
+  @@index([referenceNo])
+  @@map("payments")
+}
+
+model Refund {
+  id         Int      @id @default(autoincrement())
+  invoiceId  Int      @map("invoice_id")
+  paymentId  Int?     @map("payment_id")
+  amount     Decimal  @db.Decimal(12, 2)
+  reason     String   @db.VarChar(500)
+  approvedBy Int      @map("approved_by")
+  refundedAt DateTime @default(now()) @map("refunded_at")
+
+  invoice  Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  payment  Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  approver User     @relation(fields: [approvedBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("refunds")
+}
+
+model PaymentReminder {
+  id        Int             @id @default(autoincrement())
+  invoiceId Int             @map("invoice_id")
+  channel   ReminderChannel @default(IN_APP)
+  sentBy    Int             @map("sent_by")
+  sentAt    DateTime        @default(now()) @map("sent_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  sender  User    @relation(fields: [sentBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@map("payment_reminders")
+}
+
+model PaymentImport {
+  id          Int          @id @default(autoincrement())
+  branchId    Int          @map("branch_id")
+  fileName    String       @map("file_name") @db.VarChar(255)
+  status      ImportStatus @default(PREVIEW)
+  totalRows   Int          @default(0) @map("total_rows")
+  validRows   Int          @default(0) @map("valid_rows")
+  createdBy   Int          @map("created_by")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  confirmedAt DateTime?    @map("confirmed_at")
+
+  branch  Branch             @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  creator User               @relation(fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  rows    PaymentImportRow[]
+
+  @@map("payment_imports")
+}
+
+model PaymentImportRow {
+  id          Int             @id @default(autoincrement())
+  importId    Int             @map("import_id")
+  rowNo       Int             @map("row_no")
+  invoiceNo   String?         @map("invoice_no") @db.VarChar(30)
+  invoiceId   Int?            @map("invoice_id")
+  amount      Decimal?        @db.Decimal(12, 2)
+  method      PaymentMethod?
+  referenceNo String?         @map("reference_no") @db.VarChar(100)
+  paidAt      DateTime?       @map("paid_at")
+  status      ImportRowStatus
+  message     String?         @db.VarChar(500)
+
+  import  PaymentImport @relation(fields: [importId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  invoice Invoice?      @relation(fields: [invoiceId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@map("payment_import_rows")
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  branchId    Int      @map("branch_id")
+  category    String   @db.VarChar(100)
+  amount      Decimal  @db.Decimal(12, 2)
+  description String?  @db.VarChar(500)
+  spentOn     DateTime @map("spent_on") @db.Date
+  receiptPath String?  @map("receipt_path") @db.VarChar(255)
+  createdBy   Int      @map("created_by")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  branch  Branch @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  creator User   @relation(fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([branchId, spentOn])
+  @@map("expenses")
+}
+
+model TeacherPayout {
+  id           Int          @id @default(autoincrement())
+  branchId     Int          @map("branch_id")
+  teacherId    Int          @map("teacher_id")
+  periodStart  DateTime     @map("period_start") @db.Date
+  periodEnd    DateTime     @map("period_end") @db.Date
+  totalMinutes Int          @map("total_minutes")
+  totalAmount  Decimal      @map("total_amount") @db.Decimal(12, 2)
+  status       PayoutStatus @default(DRAFT)
+  createdBy    Int          @map("created_by")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  paidAt       DateTime?    @map("paid_at")
+
+  branch  Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  teacher Teacher        @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  creator User           @relation(fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  hours   TeachingHour[]
+
+  @@map("teacher_payouts")
+}
+
+// =====================================================================
+// M5 — Эцэг эхийн портал
+// =====================================================================
+
+model ParentRequest {
+  id          Int           @id @default(autoincrement())
+  parentId    Int           @map("parent_id")
+  studentId   Int           @map("student_id")
+  requestType RequestType   @map("request_type")
+  subject     String        @db.VarChar(200)
+  message     String        @db.Text
+  leaveFrom   DateTime?     @map("leave_from") @db.Date
+  leaveTo     DateTime?     @map("leave_to") @db.Date
+  status      RequestStatus @default(PENDING)
+  response    String?       @db.Text
+  handledBy   Int?          @map("handled_by")
+  handledAt   DateTime?     @map("handled_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  parent  Parent  @relation(fields: [parentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  handler User?   @relation(fields: [handledBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([status])
+  @@map("parent_requests")
+}
+
+// =====================================================================
+// M6 — Багшийн удирдлага
+// =====================================================================
+
+model Teacher {
+  id          Int           @id @default(autoincrement())
+  userId      Int           @unique @map("user_id")
+  branchId    Int           @map("branch_id")
+  teacherCode String        @unique @map("teacher_code") @db.VarChar(20)
+  lastName    String        @map("last_name") @db.VarChar(100)
+  firstName   String        @map("first_name") @db.VarChar(100)
+  phone       String?       @db.VarChar(30)
+  hiredOn     DateTime?     @map("hired_on") @db.Date
+  status      TeacherStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  branch              Branch                @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  courses             TeacherCourse[]
+  availability        TeacherAvailability[]
+  rates               TeacherRate[]
+  hours               TeachingHour[]
+  payouts             TeacherPayout[]
+  classes             Class[]
+  schedules           Schedule[]
+  sessions            ClassSession[]
+  assignments         Assignment[]
+  progressAssessments ProgressAssessment[]
+
+  @@map("teachers")
+}
+
+model TeacherCourse {
+  id        Int @id @default(autoincrement())
+  teacherId Int @map("teacher_id")
+  courseId  Int @map("course_id")
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([teacherId, courseId])
+  @@map("teacher_courses")
+}
+
+model TeacherAvailability {
+  id        Int    @id @default(autoincrement())
+  teacherId Int    @map("teacher_id")
+  dayOfWeek Int    @map("day_of_week")
+  startTime String @map("start_time") @db.VarChar(5)
+  endTime   String @map("end_time") @db.VarChar(5)
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("teacher_availability")
+}
+
+model TeacherRate {
+  id            Int       @id @default(autoincrement())
+  teacherId     Int       @map("teacher_id")
+  hourlyRate    Decimal   @map("hourly_rate") @db.Decimal(12, 2)
+  effectiveFrom DateTime  @map("effective_from") @db.Date
+  effectiveTo   DateTime? @map("effective_to") @db.Date
+  createdBy     Int       @map("created_by")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  teacher Teacher        @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  creator User           @relation(fields: [createdBy], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  hours   TeachingHour[]
+
+  @@index([teacherId, effectiveFrom])
+  @@map("teacher_rates")
+}
+
+model TeachingHour {
+  id             Int         @id @default(autoincrement())
+  classSessionId Int         @unique @map("class_session_id")
+  teacherId      Int         @map("teacher_id")
+  plannedMinutes Int         @map("planned_minutes")
+  actualMinutes  Int         @map("actual_minutes")
+  status         HoursStatus @default(PENDING)
+  note           String?     @db.VarChar(500)
+  approvedBy     Int?        @map("approved_by")
+  approvedAt     DateTime?   @map("approved_at")
+  rateId         Int?        @map("rate_id")
+  amount         Decimal?    @db.Decimal(12, 2)
+  payoutId       Int?        @map("payout_id")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+
+  classSession ClassSession   @relation(fields: [classSessionId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  teacher      Teacher        @relation(fields: [teacherId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  approver     User?          @relation(fields: [approvedBy], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  rate         TeacherRate?   @relation(fields: [rateId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  payout       TeacherPayout? @relation(fields: [payoutId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@index([teacherId, status])
+  @@map("teaching_hours")
+}

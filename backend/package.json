@@ -17,19 +17,28 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:status": "prisma migrate status",
     "prisma:studio": "prisma studio",
-    "db:seed": "node prisma/seed.js"
+    "db:seed": "node prisma/seed.js",
+    "db:seed:demo": "node prisma/seed.js --demo",
+    "test:smoke": "node scripts/smoke-test.js"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
     "bcryptjs": "3.0.3",
     "cors": "2.8.5",
     "dotenv": "16.4.7",
+    "exceljs": "4.4.0",
     "express": "5.2.1",
     "jsonwebtoken": "9.0.3",
     "multer": "2.4.0",
+    "pdfkit": "0.15.2",
+    "qrcode": "1.5.4",
     "zod": "4.5.4"
   },
   "devDependencies": {
     "prisma": "6.19.3"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma",
+    "seed": "node prisma/seed.js"
   }
 }
