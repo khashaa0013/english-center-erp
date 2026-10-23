@@ -1,0 +1,36 @@
+# =====================================================================
+# Англи хэлний сургалтын төвийн ERP — Git-д ОРУУЛАХГҮЙ файлууд
+# =====================================================================
+
+# ===== 1. Нууц тохиргоо =====
+.env
+.env.*
+!.env.example
+
+# ===== 2. Dependencies =====
+node_modules/
+
+# ===== 3. Build гаралт =====
+dist/
+build/
+
+# ===== 4. Upload ба backup (хувийн мэдээлэл) =====
+backend/uploads/*
+!backend/uploads/.gitkeep
+database/backups/*
+!database/backups/.gitkeep
+
+# ===== 5. Log =====
+logs/
+*.log
+npm-debug.log*
+
+# ===== 6. Test coverage =====
+coverage/
+
+# ===== 7. Үйлдлийн систем ба editor =====
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/*
+!.vscode/extensions.json

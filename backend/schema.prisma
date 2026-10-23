@@ -1,0 +1,133 @@
+// =====================================================================
+// Англи хэлний сургалтын төвийн ERP — Prisma schema
+// Database : english_center_erp (XAMPP MariaDB 10.4, utf8mb4)
+// Хэсэг 1  : M7 — Удирдлага ба салбар (цөм хүснэгтүүд)
+// =====================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider          = "mysql"
+  url               = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------
+// ENUM
+// ---------------------------------------------------------------------
+
+enum RoleCode {
+  SUPER_ADMIN
+  BRANCH_ADMIN
+  FINANCE
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+// ---------------------------------------------------------------------
+// M7 — Салбар
+// ---------------------------------------------------------------------
+
+model Branch {
+  id                   Int      @id @default(autoincrement())
+  code                 String   @unique @db.VarChar(20)
+  name                 String   @db.VarChar(150)
+  address              String?  @db.VarChar(255)
+  phone                String?  @db.VarChar(30)
+  lateThresholdMinutes Int      @default(10) @map("late_threshold_minutes")
+  qrTtlSeconds         Int      @default(60) @map("qr_ttl_seconds")
+  isActive             Boolean  @default(true) @map("is_active")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  users     User[]
+  auditLogs AuditLog[]
+
+  @@map("branches")
+}
+
+// ---------------------------------------------------------------------
+// M7 — Эрх (role)
+// ---------------------------------------------------------------------
+
+model Role {
+  id   Int      @id @default(autoincrement())
+  code RoleCode @unique
+  name String   @db.VarChar(100)
+
+  users User[]
+
+  @@map("roles")
+}
+
+// ---------------------------------------------------------------------
+// M7 — Хэрэглэгч
+// ---------------------------------------------------------------------
+
+model User {
+  id           Int       @id @default(autoincrement())
+  branchId     Int?      @map("branch_id")
+  roleId       Int       @map("role_id")
+  username     String    @unique @db.VarChar(50)
+  email        String?   @unique @db.VarChar(150)
+  displayName  String    @map("display_name") @db.VarChar(150)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  branch        Branch?        @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  role          Role           @relation(fields: [roleId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  auditLogs     AuditLog[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------
+// M7 — Audit log (хэн, хэзээ, юуг өөрчилсөн)
+// ---------------------------------------------------------------------
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?     @map("user_id")
+  branchId   Int?     @map("branch_id")
+  action     String   @db.VarChar(50)
+  entityType String   @map("entity_type") @db.VarChar(50)
+  entityId   Int?     @map("entity_id")
+  oldValues  String?  @map("old_values") @db.LongText
+  newValues  String?  @map("new_values") @db.LongText
+  reason     String?  @db.VarChar(500)
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------
+// M7 — Систем доторх мэдэгдэл
+// ---------------------------------------------------------------------
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  title     String   @db.VarChar(200)
+  body      String?  @db.Text
+  link      String?  @db.VarChar(255)
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
