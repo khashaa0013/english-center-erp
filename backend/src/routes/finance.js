@@ -366,7 +366,15 @@ router.post('/payment-imports', excelUpload.single('file'), async (req, res) => 
     if (Number.isNaN(paid.getTime())) errors.push('Огноо буруу');
     else row.paidAt = paid;
 
-    let status = 'VALID';
+    // Давхардал (файл дотор эсвэл өмнө бүртгэгдсэн лавлах дугаар) — ийм мөр алгасагдана
+    let duplicate = false;
+    if (row.referenceNo) {
+      const key = row.referenceNo.toLowerCase();
+      const inDb = await prisma.payment.findFirst({ where: { referenceNo: row.referenceNo, status: 'COMPLETED' } });
+      duplicate = seenRefs.has(key) || Boolean(inDb);
+      seenRefs.add(key);
+    }
+
     if (!row.invoiceNo) errors.push('Нэхэмжлэлийн дугаар хоосон');
     else {
       const inv = await prisma.invoice.findUnique({ where: { invoiceNo: row.invoiceNo }, include: { payments: true, refunds: true } });
@@ -375,20 +383,17 @@ router.post('/payment-imports', excelUpload.single('file'), async (req, res) => 
       else if (inv.status === 'CANCELLED') errors.push('Цуцлагдсан нэхэмжлэл');
       else {
         row.invoiceId = inv.id;
+        // Давхардсан мөр үлдэгдлийг "захиалахгүй"
         const pending = pendingPerInvoice.get(inv.id) ?? 0;
-        if (row.amount && toCents(row.amount) + pending > invoiceBalance(inv).balanceCents) errors.push('Дүн үлдэгдлээс их');
-        else if (row.amount) pendingPerInvoice.set(inv.id, pending + toCents(row.amount));
+        if (!duplicate && row.amount) {
+          if (toCents(row.amount) + pending > invoiceBalance(inv).balanceCents) errors.push('Дүн үлдэгдлээс их');
+          else pendingPerInvoice.set(inv.id, pending + toCents(row.amount));
+        }
       }
     }
-    // Давхардал: файл дотор болон өмнө бүртгэгдсэн лавлах дугаар
-    if (row.referenceNo) {
-      const key = row.referenceNo.toLowerCase();
-      const inDb = await prisma.payment.findFirst({ where: { referenceNo: row.referenceNo, status: 'COMPLETED' } });
-      if (seenRefs.has(key) || inDb) status = 'DUPLICATE';
-      seenRefs.add(key);
-    }
-    if (errors.length) status = 'ERROR';
-    rows.push({ ...row, status, message: errors.join('; ') || (status === 'DUPLICATE' ? 'Лавлах дугаар давхардсан' : null) });
+    const status = duplicate ? 'DUPLICATE' : errors.length ? 'ERROR' : 'VALID';
+    const message = [duplicate ? 'Лавлах дугаар давхардсан' : null, ...errors].filter(Boolean).join('; ') || null;
+    rows.push({ ...row, status, message });
   }
 
   const imp = await prisma.paymentImport.create({

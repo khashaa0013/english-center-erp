@@ -10,7 +10,7 @@ import { badRequest, forbidden, notFound } from '../lib/httpError.js';
 import { writeAudit } from '../lib/audit.js';
 import { authorize } from '../middleware/auth.js';
 import { assertBranch, branchFilter, isSuper } from '../middleware/scope.js';
-import { idParam, validate, zOptId, zOptStr, zStr } from '../middleware/validate.js';
+import { idParam, validate, zOptId, zStr } from '../middleware/validate.js';
 
 const router = Router();
 router.use(authorize('SUPER_ADMIN', 'BRANCH_ADMIN'));

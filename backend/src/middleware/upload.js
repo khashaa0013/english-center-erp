@@ -31,7 +31,10 @@ export function uploader(folder, kind = 'document') {
     }),
     limits: { fileSize: env.uploadMaxBytes, files: 1 },
     fileFilter: (_req, file, cb) => {
-      if (ALLOWED[kind].includes(file.mimetype)) cb(null, true);
+      // Excel суулгаагүй компьютерын браузер .xlsx-ийг octet-stream гэж илгээдэг;
+      // агуулгыг exceljs уншихдаа шалгана
+      const xlsxByName = kind === 'excel' && path.extname(file.originalname).toLowerCase() === '.xlsx';
+      if (ALLOWED[kind].includes(file.mimetype) || xlsxByName) cb(null, true);
       else cb(badRequest(`Энэ төрлийн файл зөвшөөрөгдөхгүй: ${file.mimetype}`));
     },
   });

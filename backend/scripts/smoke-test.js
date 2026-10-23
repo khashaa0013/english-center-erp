@@ -218,6 +218,54 @@ async function main() {
   const audit = await ok(admin, 'GET', `/audit-logs?entityType=Attendance`);
   check('Залруулгын түүх audit log-д хадгалагдсан', audit.some((a) => a.action === 'CORRECT' && a.reason));
 
+  console.log('\n10. Файл: гэрээ PDF, Excel экспорт/импорт, материал, QPay хамгаалалт');
+  await ok(admin, 'POST', `/enrollments/${enr.id}/contract/generate`);
+  const pdf = await fetch(`${API}/enrollments/${enr.id}/contract/file?token=${encodeURIComponent(admin)}`);
+  check('Гэрээний PDF татагдлаа', pdf.ok && (await pdf.text()).startsWith('%PDF'));
+  const xlsx = await fetch(`${API}/reports/export/students`, { headers: { Authorization: `Bearer ${admin}` } });
+  const xbuf = Buffer.from(await xlsx.arrayBuffer());
+  check('Excel экспорт (.xlsx)', xlsx.ok && xbuf.subarray(0, 2).toString() === 'PK');
+
+  // Үлдэгдэл 250,000₮-ийг банкны хуулгаар (2 мөр, нэг нь давхардсан лавлахтай) импортлох
+  const { default: ExcelJS } = await import('exceljs');
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Төлөлт');
+  ws.addRow(['invoice_no', 'amount', 'method', 'reference_no', 'paid_at']);
+  ws.addRow([conf.invoice.invoiceNo, 250000, 'BANK_TRANSFER', `BANK${run}`, today]);
+  ws.addRow([conf.invoice.invoiceNo, 1000, 'BANK_TRANSFER', `BANK${run}`, today]);
+  const upload = async () => {
+    const form = new FormData();
+    form.append('file', new Blob([await wb.xlsx.writeBuffer()]), 'bank.xlsx');
+    const r = await fetch(`${API}/finance/payment-imports`, { method: 'POST', headers: { Authorization: `Bearer ${finance}` }, body: form });
+    return r.json();
+  };
+  const imp = await upload();
+  check('Импорт: 1 зөв, 1 давхардсан мөр илэрлээ', imp.validRows === 1 && imp.rows.some((r) => r.status === 'DUPLICATE'), imp.rows);
+  const confirmed = await ok(finance, 'POST', `/finance/payment-imports/${imp.id}/confirm`);
+  inv = await ok(finance, 'GET', `/finance/invoices/${invId}`);
+  check('Импорт батлагдаж нэхэмжлэл бүрэн төлөгдлөө', confirmed.imported === 1 && inv.status === 'PAID', { confirmed, status: inv.status });
+  const again = await call(finance, 'POST', `/finance/payment-imports/${imp.id}/confirm`);
+  check('Импортыг давтан батлахгүй (409)', again.status === 409);
+  const imp2 = await upload();
+  check('Ижил хуулгыг дахин оруулахад давхардал гэж илэрнэ', imp2.validRows === 0);
+
+  const mform = new FormData();
+  mform.append('title', 'Unit 1 workbook');
+  mform.append('type', 'PDF');
+  mform.append('file', new Blob(['%PDF-1.4 test'], { type: 'application/pdf' }), 'unit1.pdf');
+  const mat = await (await fetch(`${API}/classes/${cls.id}/materials`, { method: 'POST', headers: { Authorization: `Bearer ${teacher}` }, body: mform })).json();
+  const asStudent = await fetch(`${API}/files/${mat.filePath}?token=${encodeURIComponent(student)}`);
+  check('Элссэн сурагч ангийн материалыг татна', asStudent.ok);
+  const outsider = await ok(admin, 'POST', '/students', { lastName: 'Гадны', firstName: run, force: true });
+  await ok(admin, 'POST', `/students/${outsider.id}/account`, { password: PW });
+  const outsiderToken = await login(outsider.studentCode.toLowerCase());
+  const asOutsider = await fetch(`${API}/files/${mat.filePath}?token=${encodeURIComponent(outsiderToken)}`);
+  check('Элсээгүй сурагч материал татахгүй (403)', asOutsider.status === 403);
+  const traversal = await fetch(`${API}/files/materials/..%2F..%2F.env?token=${encodeURIComponent(admin)}`);
+  check('Файлын замаар (../) гарах оролдлого хаагдана', traversal.status === 400 || traversal.status === 403 || traversal.status === 404);
+  const qpay = await call(null, 'POST', '/public/qpay/callback', { invoiceNo: conf.invoice.invoiceNo, paymentId: 'X1', amount: 1 });
+  check('Нууц түлхүүргүй QPay callback хаагдана (401)', qpay.status === 401);
+
   console.log(failures ? `\n✘ ${failures} шалгалт амжилтгүй` : '\n✔ Бүх шалгалт амжилттай');
   process.exitCode = failures ? 1 : 0;
 }

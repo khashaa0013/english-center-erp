@@ -3,6 +3,8 @@
 - Эх сурвалж: SUERP3.docx (7 модуль), Master Prompt §6
 - Database: `english_center_erp` · MariaDB 10.4.32 · `utf8mb4_unicode_ci`
 - Энэ файл хүснэгт, гол багана, холбоосыг харуулна. Баганын бүрэн тодорхойлолт `backend/prisma/schema.prisma` файлд байна.
+- Бүх хүснэгт `created_at`, ихэнх нь `updated_at` баганатай (диаграмд товчилсон).
+- Хуваарийн цаг (`start_time`, `end_time`) нь `VARCHAR(5)` "HH:MM" (Asia/Ulaanbaatar). Огноо-цаг бүгд UTC-ээр хадгалагдана.
 
 ## Тэмдэглэгээ
 
@@ -27,6 +29,8 @@ erDiagram
         varchar phone
         int late_threshold_minutes "хоцролтын босго"
         int qr_ttl_seconds "QR хүчинтэй хугацаа"
+        varchar stamp_path "тамганы зураг"
+        varchar signature_path "гарын үсгийн зураг"
         bool is_active
     }
     roles {
@@ -40,12 +44,13 @@ erDiagram
         int role_id FK
         varchar username UK
         varchar email UK "NULL байж болно"
+        varchar display_name
         varchar password_hash "bcrypt"
         bool is_active
         datetime last_login_at
     }
     audit_logs {
-        bigint id PK
+        int id PK
         int user_id FK
         int branch_id FK
         varchar action "CREATE, UPDATE, CONFIRM, CORRECT ..."
@@ -54,6 +59,7 @@ erDiagram
         longtext old_values "JSON"
         longtext new_values "JSON"
         varchar reason
+        int approved_by FK "батлагч (буцаалт, цаг батлах)"
         varchar ip_address
         datetime created_at
     }
@@ -69,7 +75,7 @@ erDiagram
 
     branches |o--o{ users : "харьяалагдана"
     roles ||--o{ users : "эрх"
-    users |o--o{ audit_logs : "үйлдэл хийсэн"
+    users |o--o{ audit_logs : "үйлдэл хийсэн / баталсан"
     branches |o--o{ audit_logs : "салбар"
     users ||--o{ notifications : "хүлээн авна"
     users |o--o| students : "сурагчийн нэвтрэх эрх"
@@ -142,6 +148,8 @@ erDiagram
         int student_id FK "UK(student_id, class_id)"
         int class_id FK
         int package_id FK
+        int lead_id FK, UK "нэг хүсэлт = нэг элсэлт"
+        int transferred_from_id FK, UK "анги шилжилт"
         decimal list_price "элсэх үеийн үнэ"
         decimal discount_amount
         decimal final_amount
@@ -184,6 +192,8 @@ erDiagram
     training_packages ||--o{ enrollments : "багц"
     courses ||--o{ training_packages : "үнийн багц"
     enrollments ||--o| contracts : "гэрээ"
+    leads |o--o| enrollments : "хүсэлтээс үүссэн элсэлт"
+    enrollments |o--o| enrollments : "шилжсэн"
     parents |o--o{ contracts : "гарын үсэг зурсан"
     students ||--o{ student_documents : "баримт"
     enrollments |o--o{ student_documents : "элсэлтийн баримт"
@@ -245,8 +255,8 @@ erDiagram
         int teacher_id FK
         int classroom_id FK
         int day_of_week "1 = Даваа ... 7 = Ням"
-        time start_time
-        time end_time
+        varchar start_time "HH:MM"
+        varchar end_time "HH:MM"
     }
     class_sessions {
         int id PK
@@ -501,6 +511,29 @@ erDiagram
         int approved_by FK
         datetime refunded_at
     }
+    payment_imports {
+        int id PK
+        int branch_id FK
+        varchar file_name
+        enum status "PREVIEW, CONFIRMED, CANCELLED"
+        int total_rows
+        int valid_rows
+        int created_by FK
+        datetime confirmed_at
+    }
+    payment_import_rows {
+        int id PK
+        int import_id FK
+        int row_no
+        varchar invoice_no
+        int invoice_id FK "тулгасан нэхэмжлэл"
+        decimal amount
+        enum method
+        varchar reference_no "давхардал шалгана"
+        datetime paid_at
+        enum status "VALID, DUPLICATE, ERROR, IMPORTED"
+        varchar message
+    }
     payment_reminders {
         int id PK
         int invoice_id FK
@@ -537,6 +570,9 @@ erDiagram
     invoices ||--o{ refunds : "буцаалт"
     payments |o--o{ refunds : "буцаасан төлөлт"
     invoices ||--o{ payment_reminders : "сануулга"
+    branches ||--o{ payment_imports : "Excel импорт"
+    payment_imports ||--o{ payment_import_rows : "мөр"
+    invoices |o--o{ payment_import_rows : "тулгалт"
     branches ||--o{ expenses : "зарлага"
     teachers ||--o{ teacher_payouts : "хөлсний тооцоо"
     branches ||--o{ teacher_payouts : "салбар"
@@ -595,8 +631,8 @@ erDiagram
         int id PK
         int teacher_id FK
         int day_of_week
-        time start_time
-        time end_time
+        varchar start_time "HH:MM"
+        varchar end_time "HH:MM"
     }
     teacher_rates {
         int id PK
