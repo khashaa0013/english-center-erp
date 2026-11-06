@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1437"/>
+      <stop offset=".55" stop-color="#1a2f7a"/>
+      <stop offset="1" stop-color="#26205a"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#60a5fa" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#60a5fa" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#a78bfa" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#f472b6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowC" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#fbbf24" stop-opacity=".1"/>
+      <stop offset="1" stop-color="#fbbf24" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1e3a8a" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#0b1437"/>
+    </linearGradient>
+    <linearGradient id="hill2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#312e81"/>
+      <stop offset="1" stop-color="#0b1437"/>
+    </linearGradient>
+    <pattern id="dots" width="36" height="36" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1.4" fill="#fff" opacity=".07"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+  <rect width="1600" height="1000" fill="url(#dots)"/>
+  <circle cx="260" cy="220" r="420" fill="url(#glowA)"/>
+  <circle cx="1380" cy="180" r="380" fill="url(#glowB)"/>
+  <circle cx="1100" cy="860" r="420" fill="url(#glowC)"/>
+
+  <!-- stars -->
+  <g fill="#fff">
+    <circle cx="120" cy="90" r="1.6" opacity=".7"/><circle cx="420" cy="60" r="1.2" opacity=".6"/>
+    <circle cx="700" cy="120" r="1.8" opacity=".8"/><circle cx="980" cy="70" r="1.3" opacity=".6"/>
+    <circle cx="1250" cy="110" r="1.6" opacity=".7"/><circle cx="1520" cy="60" r="1.2" opacity=".5"/>
+    <circle cx="560" cy="260" r="1.1" opacity=".5"/><circle cx="1480" cy="330" r="1.4" opacity=".6"/>
+    <circle cx="80" cy="420" r="1.3" opacity=".5"/><circle cx="860" cy="300" r="1" opacity=".5"/>
+  </g>
+
+  <!-- floating letters -->
+  <g font-family="Georgia, 'Times New Roman', serif" font-weight="700" fill="#fff">
+    <text x="140" y="360" font-size="120" opacity=".07" transform="rotate(-12 140 360)">A</text>
+    <text x="1400" y="520" font-size="150" opacity=".06" transform="rotate(10 1400 520)">B</text>
+    <text x="980" y="250" font-size="90" opacity=".06" transform="rotate(-6 980 250)">C</text>
+    <text x="330" y="700" font-size="100" opacity=".05" transform="rotate(8 330 700)">Z</text>
+    <text x="760" y="560" font-size="70" opacity=".05">abc</text>
+  </g>
+
+  <!-- speech bubbles -->
+  <g font-family="'Segoe UI', Arial, sans-serif" font-weight="600">
+    <g transform="translate(90 150) rotate(-6)">
+      <rect width="190" height="64" rx="32" fill="#fff" opacity=".12"/>
+      <path d="M40 62 L30 88 L66 62 Z" fill="#fff" opacity=".12"/>
+      <text x="95" y="41" text-anchor="middle" font-size="26" fill="#fff" opacity=".75">Hello!</text>
+    </g>
+    <g transform="translate(1330 380) rotate(5)">
+      <rect width="210" height="64" rx="32" fill="#fff" opacity=".12"/>
+      <path d="M150 62 L170 88 L130 62 Z" fill="#fff" opacity=".12"/>
+      <text x="105" y="41" text-anchor="middle" font-size="26" fill="#fff" opacity=".75">Сайн уу?</text>
+    </g>
+    <g transform="translate(1250 600) rotate(-4)">
+      <rect width="240" height="58" rx="29" fill="#fff" opacity=".1"/>
+      <text x="120" y="37" text-anchor="middle" font-size="22" fill="#fff" opacity=".65">How are you?</text>
+    </g>
+    <g transform="translate(60 470) rotate(4)">
+      <rect width="220" height="58" rx="29" fill="#fff" opacity=".1"/>
+      <text x="110" y="37" text-anchor="middle" font-size="22" fill="#fff" opacity=".65">Let's learn!</text>
+    </g>
+  </g>
+
+  <!-- hills -->
+  <path d="M0 820 C220 740 420 780 640 820 S1080 900 1300 820 S1540 760 1600 780 V1000 H0 Z" fill="url(#hill2)" opacity=".85"/>
+  <path d="M0 880 C260 830 520 900 800 890 S1300 830 1600 880 V1000 H0 Z" fill="url(#hill)"/>
+
+  <!-- books -->
+  <g transform="translate(110 760)" opacity=".45">
+    <rect x="0" y="60" width="200" height="34" rx="6" fill="#f472b6"/>
+    <rect x="12" y="26" width="180" height="34" rx="6" fill="#60a5fa"/>
+    <rect x="-4" y="-8" width="190" height="34" rx="6" fill="#fbbf24"/>
+    <rect x="10" y="64" width="170" height="4" fill="#fff" opacity=".5"/>
+    <rect x="24" y="30" width="150" height="4" fill="#fff" opacity=".5"/>
+    <rect x="8" y="-4" width="160" height="4" fill="#fff" opacity=".5"/>
+  </g>
+
+  <!-- graduation cap -->
+  <g transform="translate(1330 720) rotate(-8)" opacity=".6">
+    <path d="M0 40 L90 0 L180 40 L90 80 Z" fill="#0f172a" stroke="#fbbf24" stroke-width="3"/>
+    <path d="M40 58 V100 C40 118 140 118 140 100 V58 L90 80 Z" fill="#1e293b"/>
+    <path d="M150 48 V100" stroke="#fbbf24" stroke-width="3"/>
+    <circle cx="150" cy="106" r="7" fill="#fbbf24"/>
+  </g>
+
+  <!-- globe -->
+  <g transform="translate(1460 120)" opacity=".35" fill="none" stroke="#fff" stroke-width="2">
+    <circle r="56"/>
+    <ellipse rx="24" ry="56"/>
+    <path d="M-56 0 H56 M-48 -28 H48 M-48 28 H48"/>
+  </g>
+</svg>

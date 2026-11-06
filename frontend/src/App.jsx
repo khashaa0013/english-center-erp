@@ -4,7 +4,8 @@ import { useAuth } from './lib/auth.jsx';
 import Layout from './components/Layout.jsx';
 import { Loading } from './components/ui.jsx';
 
-import { Login, Home, Notifications, Profile } from './pages/core.jsx';
+import { Home, Notifications, Profile } from './pages/core.jsx';
+import { Login } from './pages/login.jsx';
 import { PublicLeadForm, VerifyCertificate } from './pages/public.jsx';
 import { LeadsPage } from './pages/leads.jsx';
 import { StudentsPage, StudentDetail } from './pages/students.jsx';

@@ -49,6 +49,16 @@ router.post(
   },
 );
 
+// Нэвтрэх хуудасны хэрэглэгч сонгох товчлуурууд (зөвхөн нэр, эрх, салбар — нууц мэдээлэлгүй)
+router.get('/users', async (req, res) => {
+  const users = await prisma.user.findMany({
+    where: { isActive: true },
+    select: { id: true, username: true, displayName: true, role: { select: { code: true } }, branch: { select: { name: true } } },
+    orderBy: [{ roleId: 'asc' }, { displayName: 'asc' }],
+  });
+  res.json(users.map((u) => ({ id: u.id, username: u.username, displayName: u.displayName, role: u.role.code, branch: u.branch?.name ?? null })));
+});
+
 router.get('/me', authenticate, async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },

@@ -80,8 +80,13 @@ export default function Layout() {
   return (
     <div className="shell">
       <aside className={`sidebar ${open ? 'open' : ''}`}>
-        <div className="brand">Алхам ERP</div>
-        <div className="brand-sub">Англи хэлний сургалтын төв</div>
+        <div className="brand">
+          <span className="brand-mark"><img src="/lingora-mark.png" alt="" /></span>
+          <span>
+            Lingora
+            <small className="brand-sub">English Learning ERP</small>
+          </span>
+        </div>
         <nav className="nav">
           {groups.map(([title, items]) => (
             <div key={title || 'main'}>

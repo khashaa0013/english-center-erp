@@ -1,54 +1,10 @@
-// Нэвтрэх, нүүр, мэдэгдэл, профайл
+// Нүүр, мэдэгдэл, профайл
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api, qs } from '../lib/api.js';
 import { useAuth } from '../lib/auth.jsx';
 import { dateTime, money, ROLE, time, todayUb } from '../lib/format.js';
 import { Badge, Card, Empty, ErrorBox, Field, Loading, PageHeader, Stat, useAction, useApi } from '../components/ui.jsx';
-
-export function Login() {
-  const { login } = useAuth();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
-  const [busy, setBusy] = useState(false);
-
-  const submit = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      await login(username.trim(), password);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <div className="center-page">
-      <div className="auth-card">
-        <h1>Алхам ERP</h1>
-        <div className="muted">Англи хэлний сургалтын төвийн удирдлагын систем</div>
-        <form className="form" onSubmit={submit}>
-          <ErrorBox error={error} />
-          <Field label="Нэвтрэх нэр">
-            <input autoFocus autoComplete="username" value={username} onChange={(e) => setUsername(e.target.value)} required />
-          </Field>
-          <Field label="Нууц үг">
-            <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          </Field>
-          <button className="btn primary lg" disabled={busy}>{busy ? 'Нэвтэрч байна…' : 'Нэвтрэх'}</button>
-        </form>
-        <div className="row small" style={{ marginTop: 16, justifyContent: 'space-between' }}>
-          <Link to="/register">Сургалтад бүртгүүлэх</Link>
-          <Link to="/verify">Гэрчилгээ шалгах</Link>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function TodaySessions({ teacher }) {
   const today = todayUb();
